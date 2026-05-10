@@ -1,10 +1,13 @@
 import Fastify from 'fastify'
+import { runRoutes } from './routes/runs'
 
 const app = Fastify({ logger: true })
 
 app.get('/health', async () => {
   return { status: 'ok' }
 })
+
+app.register(runRoutes)
 
 const start = async () => {
   try {
