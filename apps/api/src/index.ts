@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import { runRoutes } from './routes/runs'
+import { stepsRoutes } from './routes/steps'
 
 const app = Fastify({ logger: true })
 
@@ -8,6 +9,7 @@ app.get('/health', async () => {
 })
 
 app.register(runRoutes)
+app.register(stepsRoutes)
 
 const start = async () => {
   try {
