@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import postgresPlugin from './plugins/postgres.js'
 import { runRoutes } from './routes/runs'
 import { stepsRoutes } from './routes/steps'
 
@@ -8,6 +9,7 @@ app.get('/health', async () => {
   return { status: 'ok' }
 })
 
+await app.register(postgresPlugin)
 app.register(runRoutes)
 app.register(stepsRoutes)
 
