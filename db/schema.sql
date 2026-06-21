@@ -37,3 +37,4 @@ CREATE TABLE steps (
 );
 
 CREATE INDEX idx_steps_run_id ON steps (run_id);
+CREATE INDEX idx_runs_started_at ON runs (started_at DESC);

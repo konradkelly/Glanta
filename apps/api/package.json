@@ -14,10 +14,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@fastify/cors": "^11.2.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.8.5",
     "fastify-plugin": "^5.1.0",
+    "glanta": "file:../..",
     "pg": "^8.20.0"
   },
   "devDependencies": {
