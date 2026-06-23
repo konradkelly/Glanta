@@ -7,20 +7,83 @@
   box-sizing: border-box;
 }
 
+@media (max-width: 640px) {
+  .app {
+    padding: 1.25rem 1rem 2rem;
+  }
+}
+
+.header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.header__brand:hover h1 {
+  color: var(--accent);
+}
+
+.header__mark {
+  flex-shrink: 0;
+}
+
 .header h1 {
   margin: 0;
   font-size: 1.75rem;
   letter-spacing: 0.02em;
+  transition: color 0.15s ease;
 }
 
 .tagline {
   margin: 0.25rem 0 0;
   color: var(--text);
   opacity: 0.85;
+  font-size: 0.9rem;
+}
+
+.header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.tagline--primary {
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-h);
+  opacity: 1;
+}
+
+.tagline--secondary {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.85;
 }
 
 .main {
   margin-top: 2rem;
+}
+
+@media (max-width: 640px) {
+  .main {
+    margin-top: 1.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.35rem;
+  }
+
+  .header__mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .tagline--secondary {
+    display: none;
+  }
 }
 
 .state-message {
@@ -373,4 +436,24 @@
   font-family: var(--mono);
   font-size: 0.85rem;
   color: var(--text-h);
+}
+
+/* Logo palette */
+.logo {
+  --logo-dark: #1a2e22;
+  --logo-mid: #2f5240;
+  --logo-tree: #3d6b4f;
+  --logo-clearing: #a8d4b8;
+  --logo-beam: #e4ece6;
+  flex-shrink: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  .logo {
+    --logo-dark: #2f5240;
+    --logo-mid: #4a7058;
+    --logo-tree: #3d7a55;
+    --logo-clearing: #6dbf8a;
+    --logo-beam: #f5f7f2;
+  }
 }
