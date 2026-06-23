@@ -1,16 +1,10 @@
+import { Link } from 'react-router-dom'
 import type { AgentRun } from '../types/telemetry'
+import { formatOptional, formatStartedAt } from '../utils/format'
 import { StatusBadge } from './StatusBadge'
 
 type RunsTableProps = {
   runs: AgentRun[]
-}
-
-function formatStartedAt(iso: string): string {
-  return new Date(iso).toLocaleString()
-}
-
-function formatOptional(value: number | undefined): string {
-  return value === undefined ? '—' : String(value)
 }
 
 export function RunsTable({ runs }: RunsTableProps) {
@@ -30,7 +24,11 @@ export function RunsTable({ runs }: RunsTableProps) {
         <tbody>
           {runs.map((run) => (
             <tr key={run.runId}>
-              <td className="runs-table__mono">{run.runId}</td>
+              <td className="runs-table__mono">
+                <Link to={`/runs/${run.runId}`} className="runs-table__link">
+                  {run.runId}
+                </Link>
+              </td>
               <td>{run.agentName}</td>
               <td>
                 <StatusBadge status={run.status} />
