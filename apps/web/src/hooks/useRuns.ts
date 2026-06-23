@@ -8,6 +8,7 @@ export function useRuns(limit = 50) {
   const [runs, setRuns] = useState<AgentRun[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -21,6 +22,7 @@ export function useRuns(limit = 50) {
         const data = await getRuns(limit)
         if (!cancelled) {
           setRuns(data.runs)
+          setLastUpdated(new Date())
           setError(false)
         }
       } catch {
@@ -43,5 +45,5 @@ export function useRuns(limit = 50) {
     }
   }, [limit])
 
-  return { runs, loading, error }
+  return { runs, loading, error, lastUpdated }
 }
