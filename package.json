@@ -3,7 +3,10 @@
   "private": true,
   "scripts": {
     "dev": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/api run build",
-    "start": "npm --prefix apps/api run start"
+    "start": "npm --prefix apps/api run start",
+    "seed": "npm --prefix apps/agents run seed",
+    "agent:hello": "npm --prefix apps/agents run hello"
   }
 }
