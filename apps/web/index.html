@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0d1210" />
     <title>Glanta</title>
+    <script>
+      (function () {
+        var stored = localStorage.getItem('glanta-theme')
+        document.documentElement.dataset.theme =
+          stored === 'light' || stored === 'dark' ? stored : 'dark'
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
