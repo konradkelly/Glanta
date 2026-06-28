@@ -1,6 +1,6 @@
 # Glanta Dashboard — Implementation Plan
 
-> Plan for the first version of `apps/web`. Review and adjust scope before implementation.
+> **Status: MVP complete** (June 2026). This document records the plan and decisions; see `README.md` for how to run the stack locally.
 
 ---
 
@@ -18,12 +18,13 @@ Build a **read-only React dashboard** that lets you see agent runs and their tra
 
 | Layer | Status |
 |-------|--------|
-| **Ingest** | `POST /runs`, `POST /steps` persist to Postgres |
-| **Read API** | **Missing** — dashboard needs new `GET` routes |
+| **Ingest** | `POST /runs`, `POST /steps` persist to Postgres (upsert by ID) |
+| **Read API** | `GET /runs`, `GET /runs/:runId` with query layer in `apps/api/src/db/query.ts` |
 | **Health** | `GET /health` (liveness), `GET /ready` (DB readiness) |
-| **Frontend** | `apps/web` does not exist yet |
-| **CORS** | `@fastify/cors` installed but **not registered** |
-| **Shared types** | `AgentRun` / `TraceStep` live in `apps/api` only |
+| **Frontend** | `apps/web` — runs list, run detail, polling, dark theme |
+| **Dev proxy** | Vite forwards `/api` → `:3000` (`VITE_API_URL=/api`); no CORS needed locally |
+| **Shared types** | Duplicated in `apps/web/src/types/telemetry.ts` and `apps/agents/src/types/telemetry.ts` |
+| **Test data** | `apps/agents` — `npm run seed`, `npm run agent:hello` (Ollama) |
 
 ---
 
@@ -45,27 +46,27 @@ PostgreSQL (Docker :5433)
 
 ## Phased Delivery
 
-### Phase 0 — Prerequisites (API)
+### Phase 0 — Prerequisites (API) ✓
 
 Small backend work before or in parallel with UI scaffold.
 
-1. **Enable CORS** on the API for local dev (`http://localhost:5173`).
-2. **Add read routes** (see [API design](#api-design-read-routes) below).
-3. **Add query layer** — e.g. `apps/api/src/db/query.ts` with row → `AgentRun` / `TraceStep` mappers (snake_case ↔ camelCase).
-4. **Optional index** — `CREATE INDEX idx_runs_started_at ON runs (started_at DESC)` for faster list queries (can defer until slow).
+1. **Add read routes** (see [API design](#api-design-read-routes) below). ✓
+2. **Add query layer** — e.g. `apps/api/src/db/query.ts` with row → `AgentRun` / `TraceStep` mappers (snake_case ↔ camelCase). ✓
+3. **Optional index** — `CREATE INDEX idx_runs_started_at ON runs (started_at DESC)` for faster list queries (can defer until slow). ✓
+4. **Vite dev proxy** — `/api` → `:3000` avoids cross-origin in local dev (CORS deferred until deployment). ✓
 
 **Exit criteria:** `curl http://localhost:3000/runs` returns JSON; `curl http://localhost:3000/runs/:runId` includes nested steps.
 
 ---
 
-### Phase 1 — Scaffold `apps/web`
+### Phase 1 — Scaffold `apps/web` ✓
 
 1. Create `apps/web` with **Vite + React + TypeScript** (matches AGENTS.md, fast local DX).
 2. Add scripts at repo root or in `apps/web/package.json`:
    - `dev` — Vite dev server
    - `build` — production static assets
    - `preview` — serve built assets locally
-3. **API base URL** via `VITE_API_URL` (default `http://localhost:3000` in `.env.example`).
+3. **API base URL** via `VITE_API_URL` (default `/api` using Vite proxy in `.env.example`).
 4. **Types** — duplicate `RunStatus`, `AgentRun`, `TraceStep` in `apps/web/src/types/telemetry.ts` for now (shared package is deferred).
 5. Minimal layout: app shell, header (“Glanta”), main content area.
 
@@ -73,7 +74,7 @@ Small backend work before or in parallel with UI scaffold.
 
 ---
 
-### Phase 2 — Runs list page
+### Phase 2 — Runs list page ✓
 
 **Route:** `/` (home)
 
@@ -90,7 +91,7 @@ Small backend work before or in parallel with UI scaffold.
 
 ---
 
-### Phase 3 — Run detail + trace timeline
+### Phase 3 — Run detail + trace timeline ✓
 
 **Route:** `/runs/:runId`
 
@@ -106,14 +107,14 @@ Small backend work before or in parallel with UI scaffold.
 
 ---
 
-### Phase 4 — Polish (still MVP-friendly)
+### Phase 4 — Polish (still MVP-friendly) ✓
 
-Pick what matters for a portfolio demo; none is blocking.
+Implemented for portfolio demo:
 
-- Auto-refresh indicator (“Updated 3s ago”).
-- Filter runs by `status` (client-side on loaded page).
-- Basic responsive layout (readable on laptop; mobile optional).
-- Simple Glanta visual identity (dark theme, restrained palette — forest/clearing vibe from tagline).
+- Auto-refresh indicator (“Updated 3s ago”). ✓ — `RefreshIndicator.tsx`
+- Filter runs by `status` (client-side on loaded page). ✓ — `StatusFilter.tsx`
+- Basic responsive layout (readable on laptop; mobile optional). ✓
+- Simple Glanta visual identity (dark theme, restrained palette — forest/clearing vibe from tagline). ✓ — plus `ThemeToggle`, `TreeRingLogo`
 
 ---
 
@@ -167,7 +168,7 @@ Single run with all steps.
 
 ---
 
-## Frontend Structure (proposed)
+## Frontend Structure (implemented)
 
 ```text
 apps/web/
@@ -177,32 +178,33 @@ apps/web/
     types/
       telemetry.ts
     api/
-      client.ts          # fetch wrapper, base URL
-      runs.ts            # getRuns(), getRun(runId)
+      client.ts
+      runs.ts
     pages/
       RunsListPage.tsx
       RunDetailPage.tsx
     components/
       Layout.tsx
       StatusBadge.tsx
+      StatusFilter.tsx
       RunsTable.tsx
       RunSummary.tsx
       StepsTimeline.tsx
       EmptyState.tsx
+      RefreshIndicator.tsx
+      TextPreview.tsx
+      ThemeToggle.tsx
+      logos/TreeRingLogo.tsx
     hooks/
-      useRuns.ts         # polling hook
+      useRuns.ts
+      useRun.ts
+      useTheme.ts
+      useRelativeTime.ts
 ```
 
-**Routing:** `react-router-dom` (standard for multi-page SPA).
+**Routing:** `react-router-dom`.
 
-**Styling (pick one at implementation time):**
-
-| Option | Pros |
-|--------|------|
-| **Plain CSS modules** | No extra deps, full control |
-| **Tailwind** | Fast UI, common in portfolios |
-
-Recommendation: **CSS modules** for MVP to keep dependency surface small; revisit Tailwind if velocity matters more.
+**Styling:** Plain CSS in `App.css` and `index.css` (not CSS modules — close enough for MVP).
 
 ---
 
@@ -211,7 +213,7 @@ Recommendation: **CSS modules** for MVP to keep dependency surface small; revisi
 ```text
 Terminal 1:  docker compose up -d          # Postgres on :5433
 Terminal 2:  npm run dev --prefix apps/api # API on :3000
-Terminal 3:  npm run dev --prefix apps/web # Vite on :5173
+Terminal 3:  npm run dev:web              # Vite on :5173
 ```
 
 **Env files:**
@@ -219,7 +221,7 @@ Terminal 3:  npm run dev --prefix apps/web # Vite on :5173
 | File | Purpose |
 |------|---------|
 | `apps/api/.env` | `DATABASE_URL=...@localhost:5433/glanta` |
-| `apps/web/.env` | `VITE_API_URL=http://localhost:3000` |
+| `apps/web/.env` | `VITE_API_URL=/api` (Vite proxy to API on :3000) |
 | `apps/web/.env.example` | Committed template |
 
 ---
@@ -229,7 +231,7 @@ Terminal 3:  npm run dev --prefix apps/web # Vite on :5173
 - **No auth** on read or write — acceptable for localhost only.
 - Document that public deployment will need API keys or network policies later.
 - **Read-only UI** — no delete/edit in dashboard for MVP.
-- CORS restricted to dev origins initially (`localhost:5173`).
+- Local dev avoids cross-origin via Vite proxy; add CORS before public deployment on separate origins.
 
 ---
 
@@ -247,19 +249,19 @@ Terminal 3:  npm run dev --prefix apps/web # Vite on :5173
 
 ## Success Criteria (definition of done)
 
-1. [ ] `GET /runs` and `GET /runs/:runId` implemented and tested with `curl`.
-2. [ ] CORS allows browser requests from Vite dev server.
-3. [ ] `apps/web` scaffold builds with `npm run build`.
-4. [ ] Runs list shows ingested data with status and timestamps.
-5. [ ] Run detail shows step timeline for a multi-step trace.
-6. [ ] README or AGENTS.md updated with “run the dashboard” instructions (after implementation).
+1. [x] `GET /runs` and `GET /runs/:runId` implemented and tested with `curl`.
+2. [x] Vite proxy allows browser requests to the API without cross-origin issues.
+3. [x] `apps/web` scaffold builds with `npm run build`.
+4. [x] Runs list shows ingested data with status and timestamps.
+5. [x] Run detail shows step timeline for a multi-step trace.
+6. [x] README and AGENTS.md updated with “run the dashboard” instructions.
 
 ---
 
 ## Suggested Implementation Order
 
 ```text
-1. API read routes + CORS          (~1 session)
+1. API read routes + Vite proxy    (~1 session)
 2. Scaffold apps/web               (~1 session)
 3. Runs list + polling             (~1 session)
 4. Run detail + steps timeline     (~1 session)
@@ -270,17 +272,17 @@ Total: **~3–4 focused sessions** for a demoable MVP.
 
 ---
 
-## Open Questions (for review)
+## Open Questions (resolved)
 
-1. **Polling interval** — 5s default OK, or prefer manual refresh only for MVP?
-2. **Styling** — CSS modules vs Tailwind?
-3. **Monorepo scripts** — add root `package.json` workspaces later, or keep per-app `npm` commands for now?
-4. **Run list fields** — show full `input` preview in table or truncate to one line?
-5. **Phase 4 polish** — which items are must-have for your portfolio timeline?
+1. **Polling interval** — 5s (`POLL_MS` in `useRuns.ts` / `useRun.ts`).
+2. **Styling** — plain CSS files, not CSS modules or Tailwind.
+3. **Monorepo scripts** — per-app `npm` commands with root shortcuts (`dev`, `dev:web`, `seed`, `agent:hello`).
+4. **Run list fields** — table shows runId, agent, status, started, latency, tokens; no input preview in list.
+5. **Phase 4 polish** — all items shipped, plus theme toggle and logo.
 
 ---
 
-## Related Docs to Update (after build)
+## Related Docs (updated)
 
-- `AGENTS.md` — mark dashboard scaffold done; add `GET /runs` to API section; fix `tokenUsage` → flat token fields in type examples.
-- `README.md` — quick start with web + api + compose.
+- [x] `AGENTS.md` — dashboard and agents marked done; `GET /runs` documented; flat token fields.
+- [x] `README.md` — quick start with web + api + compose + seed/hello-agent.

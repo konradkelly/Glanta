@@ -54,3 +54,13 @@ npm run agent:hello -- "Explain Kubernetes ingress"
 ```
 
 Copy `apps/agents/.env.example` to `apps/agents/.env` to override `OLLAMA_MODEL` or `OLLAMA_HOST`.
+
+### Tests
+
+Integration tests require Postgres (`docker compose up -d`):
+
+```bash
+npm test
+```
+
+Tests truncate `runs` and `steps` in the configured database (default: `postgresql://glanta:glanta@localhost:5433/glanta`). Override with `TEST_DATABASE_URL` if needed.

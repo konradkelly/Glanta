@@ -53,17 +53,19 @@ The project is also a portfolio piece targeting DevOps and software development 
 Glanta/
   apps/
     api/          ← Fastify + TypeScript backend
-      src/
-        index.ts
-        types/
-          telemetry.ts
-    web/          ← React dashboard
+    web/          ← React dashboard (Vite)
+    agents/       ← Test agents + seed script (GlantaClient)
+  db/
+    schema.sql    ← Postgres schema (runs, steps)
+  docs/
+    DASHBOARD_PLAN.md
+    ROADMAP.md
   infra/
-    terraform/    ← EKS cluster, RDS, ECR, VPC, IAM
-    k8s/          ← Deployment, Service, Ingress manifests
+    terraform/    ← EKS cluster, RDS, ECR, VPC, IAM (future)
+    k8s/          ← Deployment, Service, Ingress manifests (future)
   docker-compose.yml
-  CONTEXT.md
   README.md
+  AGENTS.md
 ```
 
 ---
@@ -85,12 +87,6 @@ export type EventType =
   | 'step.completed'
   | 'step.failed'
 
-export interface TokenUsage {
-  input: number
-  output: number
-  total: number
-}
-
 export interface AgentRun {
   runId: string
   agentName: string
@@ -100,7 +96,9 @@ export interface AgentRun {
   input: string
   output?: string
   error?: string
-  tokenUsage?: TokenUsage
+  tokenInput?: number
+  tokenOutput?: number
+  tokenTotal?: number
   latencyMs?: number
   metadata?: Record<string, unknown>
 }
@@ -115,7 +113,9 @@ export interface TraceStep {
   input: string
   output?: string
   error?: string
-  tokenUsage?: TokenUsage
+  tokenInput?: number
+  tokenOutput?: number
+  tokenTotal?: number
   latencyMs?: number
   model?: string          // optional — steps may use different models
   metadata?: Record<string, unknown>
@@ -136,10 +136,15 @@ export interface TraceStep {
 Decided on separate routes over a single unified `/events` endpoint:
 
 ```
-POST /runs     → ingest an AgentRun event
-POST /steps    → ingest a TraceStep event
-GET  /health   → health check (required for K8s liveness probe)
+POST /runs              → ingest an AgentRun event (upsert by runId)
+POST /steps             → ingest a TraceStep event (upsert by stepId)
+GET  /runs              → list recent runs (?limit, ?status)
+GET  /runs/:runId       → single run with nested steps
+GET  /health            → liveness probe
+GET  /ready             → readiness probe (checks Postgres)
 ```
+
+Local dev uses the Vite proxy (`VITE_API_URL=/api`) so the browser never cross-origin calls the API. Add CORS when deploying web and API on separate origins.
 
 The unified envelope approach (`POST /events` with `eventType` discriminator) is a valid future evolution if a webhook-style single ingestion endpoint becomes desirable.
 
@@ -149,10 +154,12 @@ The unified envelope approach (`POST /events` with `eventType` discriminator) is
 
 **Middle path:** schema is designed to be framework-agnostic from day one, but initial instrumentation targets only simple hand-rolled test agents.
 
-**Test agents planned:**
-- Web research agent — multi-step, good for trace visualization
-- Code review agent — single-call, good for baseline telemetry
-- Task decomposition agent — parent/child step relationships, most interesting for observability
+**Test agents (`apps/agents`):**
+- [x] `seed.ts` — demo runs/steps for the dashboard (no LLM)
+- [x] `hello-agent.ts` — two-step agent with local Ollama (Gemma)
+- [ ] Web research agent — multi-step, good for trace visualization
+- [ ] Code review agent — single-call, good for baseline telemetry
+- [ ] Task decomposition agent — parent/child step relationships
 
 Framework-specific integrations (LangChain, CrewAI, Anthropic SDK hooks) are future scope.
 
@@ -176,15 +183,24 @@ Three workloads in Kubernetes:
 
 ## What's Next
 
-- [ ] Scaffold `apps/api` — `package.json`, `tsconfig.json`, `src/index.ts` with health route
-- [ ] Add ingestion routes: `POST /runs`, `POST /steps`
-- [ ] Set up PostgreSQL schema and connect via Fastify plugin
-- [ ] Dockerize `glanta-api`
-- [ ] Write Terraform for EKS cluster and RDS
-- [ ] Write K8s manifests for `glanta-api`
-- [ ] Set up GitHub Actions pipeline (build → push to ECR → apply manifests)
-- [ ] Build simple web research test agent to emit real telemetry
-- [ ] Scaffold `apps/web` React dashboard
+**Direction:** Portfolio / DevOps (EKS, Terraform, CI/CD) with a robust observability platform — not a hollow deploy demo. Full phased plan: [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+**Immediate focus (Phase 2):** Dockerize api/web, prod-like compose, CORS — see [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+**Completed (Phase 1):**
+
+- [x] JSON Schema validation on `POST /runs` and `POST /steps`
+- [x] API integration tests (ingest → read, FK errors, validation 400s)
+- [x] SDK helpers (`withRun`, `runStep`) + refactor `hello-agent`
+
+**Completed:**
+
+- [x] Scaffold `apps/api` — Fastify, health/ready, Postgres plugin
+- [x] Add ingestion routes: `POST /runs`, `POST /steps`
+- [x] Set up PostgreSQL schema and connect via Fastify plugin
+- [x] Add read routes: `GET /runs`, `GET /runs/:runId`
+- [x] Scaffold `apps/web` React dashboard (MVP — see `docs/DASHBOARD_PLAN.md`)
+- [x] Add `apps/agents` with seed script and hello-agent (Ollama)
 
 ---
 

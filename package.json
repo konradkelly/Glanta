@@ -7,6 +7,7 @@
     "build": "npm --prefix apps/api run build",
     "start": "npm --prefix apps/api run start",
     "seed": "npm --prefix apps/agents run seed",
-    "agent:hello": "npm --prefix apps/agents run hello"
+    "agent:hello": "npm --prefix apps/agents run hello",
+    "test": "npm --prefix apps/api run test"
   }
 }

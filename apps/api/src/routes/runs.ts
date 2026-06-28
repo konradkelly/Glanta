@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { AgentRun, RunStatus } from '../types/telemetry'
 import { getRunWithSteps, listRuns } from '../db/query.js'
 import { upsertRun } from '../db/persist.js'
+import { agentRunBodySchema } from '../schemas/telemetry.js'
 
 const RUN_STATUSES: RunStatus[] = ['running', 'success', 'error']
 
@@ -34,9 +35,17 @@ export async function runRoutes(app: FastifyInstance) {
     return result
   })
 
-  app.post<{ Body: AgentRun }>('/runs', async (request, reply) => {
-    const run = request.body
-    await upsertRun(app.pg, run)
-    return reply.status(201).send({ received: true, runId: run.runId })
-  })
+  app.post<{ Body: AgentRun }>(
+    '/runs',
+    {
+      schema: {
+        body: agentRunBodySchema,
+      },
+    },
+    async (request, reply) => {
+      const run = request.body
+      await upsertRun(app.pg, run)
+      return reply.status(201).send({ received: true, runId: run.runId })
+    },
+  )
 }
